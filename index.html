@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<title>服装语音转写</title>
+<style>
+:root {
+  --bg: #1a1a2e; --card: #16213e; --accent: #e94560; --accent2: #0f3460;
+  --text: #eaeaea; --text2: #a0a0a0; --green: #4ecca3; --yellow: #ffd369; --radius: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+header { padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+header h1 { font-size: 18px; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.top-btns { display: flex; gap: 8px; }
+.icon-btn { background: var(--card); border: 1px solid rgba(255,255,255,0.08); color: var(--text2); border-radius: 10px; padding: 7px 10px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.icon-btn:active { background: var(--accent2); }
+main { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 0 16px; overflow: hidden; min-height: 0; }
+.section-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.raw-box { background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 12px 14px; min-height: 60px; font-size: 15px; line-height: 1.6; color: var(--text2); flex-shrink: 0; transition: border-color 0.2s; }
+.raw-box.active { border-color: var(--accent); }
+.fixed-box { background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 12px 14px; min-height: 80px; flex: 1; overflow-y: auto; font-size: 15px; line-height: 1.65; word-break: break-word; transition: border-color 0.2s; }
+.fixed-box:focus { border-color: var(--green); outline: none; }
+.fixed-box .correction { background: rgba(233,69,96,0.18); border-radius: 4px; padding: 0 2px; cursor: pointer; position: relative; }
+.fixed-box .correction:hover { background: rgba(233,69,96,0.35); }
+.fixed-box .correction::after { content: attr(data-from); display: none; position: absolute; bottom: calc(100% + 4px); left: 0; background: #333; color: var(--yellow); font-size: 11px; padding: 2px 6px; border-radius: 6px; white-space: nowrap; z-index: 10; }
+.fixed-box .correction:hover::after { display: block; }
+.correct-hint { font-size: 11px; color: var(--yellow); padding: 4px 0; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.term-highlight { background: rgba(78,204,163,0.2); border-radius: 4px; padding: 0 2px; }
+footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); flex-shrink: 0; }
+.mic-btn { width: 100%; height: 64px; border-radius: 32px; border: none; background: linear-gradient(135deg, var(--accent), #c23152); color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 24px rgba(233,69,96,0.45); position: relative; overflow: hidden; }
+.mic-btn.recording { animation: pulse-ring 1.2s ease-in-out infinite; }
+.mic-btn:active { transform: scale(0.97); }
+@keyframes pulse-ring { 0%,100% { box-shadow: 0 4px 16px rgba(233,69,96,0.3); } 50% { box-shadow: 0 4px 32px rgba(233,69,96,0.65); } }
+.mic-icon { width: 24px; height: 24px; }
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; backdrop-filter: blur(2px); }
+.drawer-overlay.open { display: block; }
+.drawer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-radius: 20px 20px 0 0; max-height: 75dvh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index: 101; }
+.drawer.open { transform: translateY(0); }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.drawer-head h2 { font-size: 16px; font-weight: 600; }
+.drawer-head .close-btn { background: rgba(255,255,255,0.08); border: none; color: var(--text2); width: 28px; height: 28px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 10px 16px; }
+.history-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; line-height: 1.5; }
+.history-item:last-child { border-bottom: none; }
+.history-meta { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+.history-from { color: var(--accent); text-decoration: line-through; }
+.history-to { color: var(--green); }
+.history-del { float: right; background: none; border: none; color: var(--text2); font-size: 12px; cursor: pointer; padding: 2px 6px; }
+.history-del:hover { color: var(--accent); }
+.history-empty { text-align: center; color: var(--text2); padding: 40px 0; font-size: 14px; }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--green); color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 14px; font-weight: 500; z-index: 200; transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); pointer-events: none; white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.asr-toggle { display: flex; gap: 6px; margin-top: 4px; }
+.asr-btn { flex: 1; padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; cursor: pointer; text-align: center; }
+.asr-btn.active { border-color: var(--accent); background: rgba(233,69,96,0.15); color: var(--accent); }
+.stats-bar { display: flex; gap: 12px; font-size: 11px; color: var(--text2); padding: 2px 0; }
+.stats-bar span { display: flex; align-items: center; gap: 3px; }
+.stats-bar .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.action-bar { display: flex; gap: 8px; margin-top: 6px; }
+.action-bar button { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text2); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.action-bar button:active { background: var(--accent2); }
+.action-bar button.learn { border-color: var(--green); color: var(--green); }
+.action-bar button.learn:active { background: rgba(78,204,163,0.15); }
+.fixed-box::-webkit-scrollbar, .drawer-body::-webkit-scrollbar { width: 4px; }
+.fixed-box::-webkit-scrollbar-thumb, .drawer-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>服装语音转写</h1>
+  <div class="top-btns">
+    <button class="icon-btn" onclick="openDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      历史
+    </button>
+    <button class="icon-btn" id="xfyunBtn" onclick="toggleXunfei()" title="切换ASR引擎">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+      <span id="asrLabel">本地</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div>
+    <div class="section-label">原始转写</div>
+    <div class="raw-box" id="rawBox">按住麦克风，说一段服装行业的话…</div>
+  </div>
+
+  <div class="correct-hint" id="correctHint" style="display:none">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span id="correctHintText"></span>
+  </div>
+
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
+    <div class="section-label">修正后（点文字可直接改）</div>
+    <div class="fixed-box" id="fixedBox" contenteditable="true" spellcheck="false"></div>
+  </div>
+
+  <div class="asr-toggle" id="asrToggle" style="display:none">
+    <button class="asr-btn active" id="localBtn" onclick="switchASR('local')">本地识别</button>
+    <button class="asr-btn" id="cloudBtn" onclick="switchASR('cloud')">讯飞云（需配置）</button>
+  </div>
+  <div class="stats-bar">
+    <span class="dot"></span><span id="statsLearned">已学习 0 条</span>
+    <span class="dot" style="background:var(--accent)"></span><span id="statsUsed">今日修正 0 次</span>
+  </div>
+  <div class="action-bar">
+    <button onclick="copyFixed()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      复制
+    </button>
+    <button onclick="clearAll()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      清空
+    </button>
+    <button class="learn" onclick="saveLearn()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      保存学习
+    </button>
+    <button onclick="exportHistory()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      导出
+    </button>
+  </div>
+</main>
+
+<footer>
+  <button class="mic-btn" id="micBtn"
+    ontouchstart="startRecording(event)" ontouchend="stopRecording(event)"
+    onmousedown="startRecording(event)" onmouseup="stopRecording(event)" onmouseleave="if(isRecording)stopRecording(event)">
+    <svg class="mic-icon" id="micIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="23" x2="16" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span id="micLabel">按住说话</span>
+  </button>
+</footer>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>自我学习记录</h2>
+    <button class="close-btn" onclick="closeDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <div class="history-empty">还没有学习记录</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

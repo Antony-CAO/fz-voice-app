@@ -1,0 +1,26 @@
+{
+  "name": "fz-voice",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "服装语音转写 · Capacitor 原生 App",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "sync": "npm run build && npx cap sync",
+    "ios": "npm run build && npx cap add ios && npx cap open ios",
+    "android": "npm run build && npx cap add android && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capgo/capacitor-speech-recognition": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
